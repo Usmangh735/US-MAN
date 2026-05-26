@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- PWA & iOS optimization tags -->
+    <meta name="theme-color" content="#080d19" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="US-MAN" />
+    <meta name="description" content="US-MAN: Administrador de ganancias, descansos rotativos de fin de semana y libranzas fijas de taxi en Madrid" />
+    
+    <!-- App launcher icon representation using modern vector taxi emoji -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚖</text></svg>" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22%23080d19%22 rx=%2222%22/><text x=%2250%%22 y=%2265%%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2260%22>🚖</text></svg>" />
+
+    <title>US-MAN — Control de Taxi Madrid</title>
+    
+    <style>
+      /* Prevent elastic bounce on iOS and make interaction pure app-like */
+      html, body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background-color: #080d19;
+        color: #f1f5f9;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        user-select: none;
+      }
+      
+      /* Dynamic scrollbars */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #2d3a4f;
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #3e4f6a;
+      }
+    </style>
+  </head>
+  <body class="bg-[#080d19] text-slate-100 overflow-x-hidden antialiased">
+    <div id="root" class="relative min-h-[100dvh] flex flex-col"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

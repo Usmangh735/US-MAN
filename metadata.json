@@ -1,0 +1,6 @@
+{
+  "name": "US-MAN",
+  "description": "Offline-ready PWA for taxi & VTC drivers in Madrid. Manage daily earnings, track target progress, check fixed/rotating weekend descansos and libranzas, and generate financial summaries.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

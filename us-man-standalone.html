@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA Optimizations -->
+    <meta name="theme-color" content="#080d19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="US-MAN">
+    <meta name="description" content="US-MAN: Control de ganancias, descansos y libranzas del taxi de Madrid">
+    
+    <title>US-MAN — Offline Standalone Control</title>
+    
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter and JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Base optimizations for pure app-like feel */
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #080d19;
+            color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2d3a4f;
+            border-radius: 9999px;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Dynamic keyframes for interactive flow */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(16px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-slide-up {
+            animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="bg-[#080d19] text-slate-100 font-sans antialiased overflow-y-auto">
+
+    <div class="min-h-screen flex flex-col items-center justify-start py-0 sm:py-8 px-0 sm:px-4 leading-normal">
+        
+        <!-- Main Frame Container -->
+        <div class="w-full max-w-md bg-[#0b1120] sm:border border-[#1e293b]/60 sm:rounded-[40px] shadow-2xl min-h-screen sm:min-h-0 sm:pb-8 flex flex-col relative overflow-hidden" id="app-viewport">
+            
+            <!-- BACKGROUND BLUR ACCENTS -->
+            <div class="absolute -top-32 -left-32 w-72 h-72 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+            <div class="absolute -top-24 -right-16 w-60 h-60 bg-emerald-500/5 rounded-full blur-[90px] pointer-events-none"></div>
+
+            <!-- HEADER MODULE -->
+            <header class="relative flex items-center justify-between py-5 px-5 border-b border-[#1e293b]/70 z-10 shrink-0">
+                <div>
+                    <h1 class="text-3xl font-black tracking-tight text-white mb-0.5 font-sans" id="header-title">US-MAN</h1>
+                    <p class="text-[10px] uppercase font-mono tracking-widest text-[#8a99ad] font-bold" id="header-date">MON, 25 MAY</p>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <!-- Weather Widget -->
+                    <div class="flex flex-col items-center justify-center bg-[#1e293b]/50 border border-[#2d3a4f] rounded-2xl px-3 py-1.5 min-w-[76px]" id="weather-widget">
+                        <div class="flex items-center gap-1 min-h-[14px]">
+                            <span id="weather-icon">🚖</span>
+                            <span class="text-sm font-bold text-white tracking-tight" id="weather-temp">10/20</span>
+                        </div>
+                        <span class="text-[8px] font-mono font-black text-[#8a99ad] uppercase tracking-wider mt-0.5" id="weather-city">Madrid</span>
+                    </div>
+
+                    <!-- Meatball Options Button -->
+                    <div class="relative">
+                        <button onclick="toggleMenu()" class="flex items-center justify-center p-2.5 rounded-xl bg-[#1e293b]/50 border border-[#2d3a4f] text-[#cbd5e1] hover:text-white active:scale-95 transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path></svg>
+                        </button>
+                        
+                        <!-- Dropdown Options Menu -->
+                        <div class="hidden absolute right-0 mt-2 w-52 bg-[#111926] border border-[#2d3a4f] rounded-2xl shadow-2xl p-2 z-50 animate-fade-in" id="options-menu">
+                            <div class="px-3 py-2 border-b border-[#1e293b] mb-1">
+                                <p class="text-[9px] font-sans font-extrabold text-[#8a99ad] uppercase tracking-wider">US-MAN Menu</p>
+                            </div>
+                            
+                            <button onclick="openTargetModal(); toggleMenu();" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-[#cbd5e1] hover:text-white hover:bg-[#1e293b]/50 rounded-xl font-bold text-left">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                <span class="lang-txt" data-en="Set Targets" data-es="Establecer Objetivos">Establecer Objetivos</span>
+                            </button>
+                            
+                            <button onclick="openPlatformModal(); toggleMenu();" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-[#cbd5e1] hover:text-white hover:bg-[#1e293b]/50 rounded-xl font-bold text-left">
+                                <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                                <span class="lang-txt" data-en="Platform Selection" data-es="Selección Plataformas">Selección Plataformas</span>
+                            </button>
+                            
+                            <button onclick="openCalendarModal(); toggleMenu();" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-[#cbd5e1] hover:text-white hover:bg-[#1e293b]/50 rounded-xl font-bold text-left">
+                                <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+                                <span class="lang-txt" data-en="Descansos & Calendar" data-es="Descansos y Calendario">Descansos y Calendario</span>
+                            </button>
+
+                            <button onclick="resetData(); toggleMenu();" class="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-[#1e293b]/50 rounded-xl font-bold text-left border-t border-[#1e293b]/40 mt-1 pt-2">
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                                <span class="lang-txt" data-en="Reset Stats Data" data-es="Reiniciar Datos">Reiniciar Datos</span>
+                            </button>
+
+                            <div class="px-3 py-1.5 border-t border-[#1e293b] mt-3 mb-1 pt-2">
+                                <p class="text-[9px] font-sans font-extrabold text-[#8a99ad] uppercase tracking-wider" id="menu-lang-title">Idioma</p>
+                            </div>
+                            <div class="flex gap-1 p-1">
+                                <button onclick="setLang('EN')" id="btn-lang-en" class="flex-1 text-center py-1 text-[11px] font-black rounded-lg transition-all text-[#8a99ad] hover:text-white">EN</button>
+                                <button onclick="setLang('ES')" id="btn-lang-es" class="flex-1 text-center py-1 text-[11px] font-black rounded-lg transition-all text-[#8a99ad] hover:text-white">ES</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- STATS / HERO TARGETS SECTION -->
+            <section class="px-5 py-4 shrink-0 relative z-10">
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Daily Progress card -->
+                    <div class="bg-[#1e293b]/40 border border-[#2d3a4f]/50 rounded-[24px] p-4 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-mono font-bold text-[#8a99ad] uppercase tracking-widest block lang-txt" data-en="TODAY >" data-es="HOY >">HOY ></span>
+                            <div class="flex items-baseline gap-1 mt-1">
+                                <span class="text-2xl font-black text-white" id="stat-today-val">€0.00</span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <div class="flex justify-between items-center text-[10px] text-[#64748b] font-bold mb-1">
+                                <span class="lang-txt" data-en="Target Status" data-es="Estado Objetivo">Estado Objetivo</span>
+                                <span id="stat-today-pct">0%</span>
+                            </div>
+                            <div class="w-full bg-[#1e293b]/60 rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-gradient-to-r from-emerald-400 to-teal-400 h-1.5 rounded-full transition-all duration-300" id="stat-today-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Progress card -->
+                    <div class="bg-[#1e293b]/40 border border-[#2d3a4f]/50 rounded-[24px] p-4 flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] font-mono font-bold text-[#8a99ad] uppercase tracking-widest block lang-txt" data-en="TOTAL >>" data-es="TOTAL >>">TOTAL >></span>
+                            <div class="flex items-baseline gap-1 mt-1">
+                                <span class="text-2xl font-black text-amber-400" id="stat-monthly-val">€0.00</span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <div class="flex justify-between items-center text-[10px] text-[#64748b] font-bold mb-1">
+                                <span class="lang-txt" data-en="Monthly Progress" data-es="Progreso Mensual">Progreso Mensual</span>
+                                <span id="stat-monthly-pct">0%</span>
+                            </div>
+                            <div class="w-full bg-[#1e293b]/60 rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-gradient-to-r from-amber-400 to-amber-500 h-1.5 rounded-full transition-all duration-300" id="stat-monthly-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Extras details sub-grid -->
+                <div class="grid grid-cols-3 gap-2 mt-2">
+                    <div class="bg-[#111926]/40 border border-[#2d3a4f]/35 rounded-xl px-2.5 py-1.5 text-center">
+                        <span class="text-[9px] font-black text-[#52637a] uppercase tracking-wider block lang-txt" data-en="Working Days" data-es="Días Trab.">Días Trab.</span>
+                        <span class="text-xs font-black text-[#cbd5e1] block mt-0.5" id="stat-working-days">0</span>
+                    </div>
+                    <div class="bg-[#111926]/40 border border-[#2d3a4f]/35 rounded-xl px-2.5 py-1.5 text-center">
+                        <span class="text-[9px] font-black text-[#52637a] uppercase tracking-wider block lang-txt" data-en="Expenses" data-es="Gastos">Gastos</span>
+                        <span class="text-xs font-black text-rose-400 block mt-0.5" id="stat-expenses-val">€0.00</span>
+                    </div>
+                    <div class="bg-[#111926]/40 border border-[#2d3a4f]/35 rounded-xl px-2.5 py-1.5 text-center">
+                        <span class="text-[9px] font-black text-[#52637a] uppercase tracking-wider block lang-txt" data-en="Net Profit" data-es="Neto Total">Neto Total</span>
+                        <span class="text-xs font-black text-emerald-400 block mt-0.5" id="stat-net-val">€0.00</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MAIN MONTHLY EARNINGS MODULE TABLE -->
+            <section class="flex-1 px-4 py-2 flex flex-col min-h-0 relative z-10">
+                <div class="bg-[#111926]/50 border border-[#2d3a4f]/50 rounded-[28px] flex flex-col flex-1 overflow-hidden">
+                    
+                    <!-- Month Selector strip inside table block header -->
+                    <div class="flex justify-between items-center px-5 py-3.5 border-b border-[#2d3a4f]/40 shrink-0">
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs font-mono font-bold text-[#8a99ad] uppercase tracking-widest lang-txt" data-en="Entries" data-es="Registros">Registros</span>
+                            <span class="text-[10px] font-black bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/10 font-mono tracking-tight" id="badge-month-count">0D</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-1 bg-[#1e293b]/70 rounded-xl p-0.5 border border-[#2d3a4f]/40">
+                            <button onclick="prevMonth()" class="p-1 px-2 text-[#cbd5e1] hover:text-white active:scale-90"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg></button>
+                            <span class="text-[10px] font-black text-white px-2 tracking-wide uppercase min-w-[70px] text-center" id="month-title">MAY 2026</span>
+                            <button onclick="nextMonth()" class="p-1 px-2 text-[#cbd5e1] hover:text-white active:scale-90"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg></button>
+                        </div>
+                    </div>
+
+                    <!-- Scrollable Table block with ultra-compact padding spaces -->
+                    <div class="flex-1 overflow-y-auto no-scrollbar" id="table-scroll-container">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-[#2d3a4f]/50 text-[#8a99ad] text-[9px] sm:text-[10px] font-black tracking-widest uppercase" id="table-header-row">
+                                    <!-- Dynamic elements from javascript platforms list -->
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[#2d3a4f]/20 font-sans text-xs" id="earnings-table-body">
+                                <!-- Dynamic records loaded dynamically -->
+                            </tbody>
+                        </table>
+                        
+                        <!-- Empty fallback indicator -->
+                        <div class="hidden flex-col items-center justify-center py-16 px-4 text-center" id="empty-state">
+                            <span class="text-3xl filter saturate-50">🚖</span>
+                            <p class="text-xs font-bold text-[#8a99ad] mt-3 lang-txt" data-en="No entries recorded yet." data-es="Sin registros guardados.">Sin registros guardados.</p>
+                            <p class="text-[10px] text-[#52637a] mt-1 pr-1 pl-1 lang-txt" data-en="Click the (+) button to enter earnings." data-es="Toca el botón (+) inferior para añadir ingresos.">Toca el botón (+) inferior para añadir ingresos.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FLOATING ACTION BUTTON (FAB) ANCHORED STYLISHLY -->
+            <button onclick="openEntryModal()" class="fixed bottom-[calc(2rem+env(safe-area-inset-bottom))] right-[calc(1.5rem+env(safe-area-inset-right))] sm:absolute sm:right-6 sm:bottom-6 z-40 w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 shadow-xl shadow-emerald-500/30 flex items-center justify-center rounded-full hover:scale-110 active:scale-95 transition-all duration-200 border border-emerald-300/30" id="fab-add-record">
+                <svg class="w-6 h-6 stroke-[3.5px] text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 5v14M5 12h14"></path></svg>
+            </button>
+
+            <!-- ----------------- MODALS CONTAINER DECK ----------------- -->
+
+            <!-- overlay dark shadow backdrop -->
+            <div class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-40 transition-all duration-300" id="modal-backdrop" onclick="closeAllModals()"></div>
+
+            <!-- MODAL A: TARGETS CONFIGURATION -->
+            <div class="hidden fixed bottom-0 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-full max-w-sm sm:rounded-[32px] rounded-t-[32px] bg-[#0e1626] border-t sm:border border-[#2d3a4f] text-white shadow-2xl z-50 flex flex-col overflow-hidden max-h-[85vh] animate-slide-up" id="modal-targets">
+                <div class="px-6 py-4.5 border-b border-[#2d3a4f]/40 flex justify-between items-center">
+                    <h2 class="text-base font-black tracking-tight lang-txt" data-en="Set Goals" data-es="Establecer Objetivos">Establecer Objetivos</h2>
+                    <button onclick="closeAllModals()" class="text-slate-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+                <div class="p-6 space-y-4 overflow-y-auto no-scrollbar">
+                    <div>
+                        <label class="block text-[10px] font-mono font-black text-[#8a99ad] uppercase tracking-widest mb-1 shadow-sm lang-txt" data-en="DAILY TARGET" data-es="OBJETIVO DIARIO">OBJETIVO DIARIO</label>
+                        <input type="number" id="input-daily-target" class="w-full bg-[#111926] border border-[#2d3a4f] rounded-2xl px-4 py-3 text-white font-extrabold text-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-mono font-black text-[#8a99ad] uppercase tracking-widest mb-1 shadow-sm lang-txt" data-en="MONTHLY TARGET" data-es="OBJETIVO MENSUAL">OBJETIVO MENSUAL</label>
+                        <input type="number" id="input-monthly-target" class="w-full bg-[#111926] border border-[#2d3a4f] rounded-2xl px-4 py-3 text-white font-extrabold text-sm focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400">
+                    </div>
+                </div>
+                <div class="p-4 bg-[#0b1120] border-t border-[#2d3a4f]/40 flex gap-2">
+                    <button onclick="closeAllModals()" class="flex-1 bg-slate-800 text-slate-300 py-3 rounded-2xl text-xs font-bold uppercase tracking-wider lang-txt" data-en="Cancel" data-es="Cancelar">Cancelar</button>
+                    <button onclick="saveTargets()" class="flex-1 bg-emerald-500 text-slate-950 py-3 rounded-2xl text-xs font-black uppercase tracking-wider lang-txt" data-en="Save" data-es="Guardar">Guardar</button>
+                </div>
+            </div>
+
+            <!-- MODAL B: PLATFORM SWITCHER selection -->
+            <div class="hidden fixed bottom-0 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-full max-w-sm sm:rounded-[32px] rounded-t-[32px] bg-[#0e1626] border-t sm:border border-[#2d3a4f] text-white shadow-2xl z-50 flex flex-col overflow-hidden max-h-[85vh] animate-slide-up" id="modal-platforms">
+                <div class="px-6 py-4.5 border-b border-[#2d3a4f]/40 flex justify-between items-center">
+                    <h2 class="text-base font-black tracking-tight lang-txt" data-en="Configure Platforms" data-es="Plataformas Activas">Plataformas Activas</h2>
+                    <button onclick="closeAllModals()" class="text-slate-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+                <div class="p-6 space-y-4 overflow-y-auto no-scrollbar">
+                    <p class="text-[10px] text-[#8a99ad] leading-snug font-medium lang-txt" data-en="Toggle platforms below to add/remove them from the table and inputs." data-es="Activa o desactiva las plataformas en tu turno diario del taxi.">Activa o desactiva las plataformas en tu turno de taxi.</p>
+                    
+                    <div class="space-y-3" id="platforms-toggle-container">
+                        <!-- Dynamic toggles created by JavaScript: Taxi, Uber, Cabify, Bolt -->
+                    </div>
+                </div>
+                <div class="p-4 bg-[#0b1120] border-t border-[#2d3a4f]/40 text-center">
+                    <button onclick="closeAllModals()" class="w-full bg-indigo-600 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider lang-txt" data-en="Close" data-es="Aceptar">Aceptar</button>
+                </div>
+            </div>
+
+            <!-- MODAL C: ADD/EDIT DAILY RECORDS -->
+            <div class="hidden fixed bottom-0 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-full max-w-sm sm:rounded-[32px] rounded-t-[32px] bg-[#0e1626] border-t sm:border border-[#2d3a4f] text-white shadow-2xl z-50 flex flex-col overflow-hidden max-h-[92vh] animate-slide-up" id="modal-entry">
+                <div class="px-6 py-4.5 border-b border-[#2d3a4f]/40 flex justify-between items-center shrink-0">
+                    <h2 class="text-base font-black tracking-tight lang-txt" id="entry-modal-title" data-en="Enter Daily Record" data-es="Introducir Registro">Introducir Registro</h2>
+                    <button onclick="closeAllModals()" class="text-slate-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+                
+                <div class="p-6 space-y-4 overflow-y-auto no-scrollbar flex-1">
+                    <!-- Date Input -->
+                    <div>
+                        <label class="block text-[10px] font-mono font-black text-[#52637a] uppercase tracking-widest mb-1 lang-txt" data-en="ENTRY DATE" data-es="FECHA DE REGISTRO">FECHA DE REGISTRO</label>
+                        <input type="date" id="input-entry-date" class="w-full bg-[#111926] border border-[#2d3a4f] rounded-2xl px-4 py-2.5 text-white font-extrabold text-sm focus:outline-none">
+                    </div>
+
+                    <!-- Platform Earnings inputs container -->
+                    <div class="space-y-3" id="entry-platforms-inputs">
+                        <!-- Filled by JavaScript -->
+                    </div>
+
+                    <!-- Expenses Input -->
+                    <div>
+                        <label class="block text-[10px] font-mono font-black text-[#52637a] uppercase tracking-widest mb-1 lang-txt" data-en="DAILY EXPENSES / GAS" data-es="GASTOS / GASOIL">GASTOS / GASOIL</label>
+                        <input type="number" id="input-entry-expenses" placeholder="0.00" class="w-full bg-[#111926] border border-rose-500/20 rounded-2xl px-4 py-2.5 text-rose-300 font-extrabold text-sm focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400">
+                    </div>
+
+                    <!-- Notes Input -->
+                    <div>
+                        <label class="block text-[10px] font-mono font-black text-[#52637a] uppercase tracking-widest mb-1 lang-txt" data-en="NOTES / INCIDENTS" data-es="NOTAS / INCIDENCIAS">NOTAS / INCIDENCIAS</label>
+                        <input type="text" id="input-entry-notes" placeholder="e.g. Pinchazo, festivo, lluvia..." class="w-full bg-[#111926] border border-[#2d3a4f] rounded-2xl px-4 py-2.5 text-slate-200 text-xs focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="p-4 bg-[#0b1120] border-t border-[#2d3a4f]/40 flex gap-2 shrink-0">
+                    <button onclick="closeAllModals()" class="flex-1 bg-slate-800 text-slate-300 py-3.5 rounded-2xl text-xs font-bold uppercase tracking-wider lang-txt" data-en="Cancel" data-es="Cancelar">Cancelar</button>
+                    <button onclick="saveEntry()" class="flex-1 bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider lang-txt" data-en="Save Entry" data-es="Guardar">Guardar</button>
+                </div>
+            </div>
+
+            <!-- MODAL D: MADRID CALENDAR & LIBRANZAS -->
+            <div class="hidden fixed bottom-0 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 left-0 sm:left-1/2 sm:-translate-x-1/2 w-full max-w-sm sm:rounded-[32px] rounded-t-[32px] bg-[#0e1626] border-t sm:border border-[#2d3a4f] text-white shadow-2xl z-50 flex flex-col overflow-hidden max-h-[92vh] animate-slide-up" id="modal-calendar">
+                <div class="px-6 py-4.5 border-b border-[#2d3a4f]/40 flex justify-between items-center shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">🗓️</span>
+                        <div>
+                            <h2 class="text-sm font-black tracking-tight lang-txt" data-en="REST DAYS & CALENDAR" data-es="DESCANSOS Y CALENDARIO">DESCANSOS Y CALENDARIO</h2>
+                            <p class="text-[8px] text-[#8a99ad] uppercase tracking-widest font-mono">Madrid Taxi</p>
+                        </div>
+                    </div>
+                    <button onclick="closeAllModals()" class="text-slate-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+                
+                <div class="p-5 space-y-4 overflow-y-auto no-scrollbar flex-1 text-xs">
+                    
+                    <!-- Fixed break selector -->
+                    <div class="bg-[#1e293b]/30 border border-[#2d3a4f]/50 rounded-2xl p-4">
+                        <label class="block text-[9px] font-mono font-black text-[#cbd5e1] tracking-widest uppercase mb-1 lang-txt" data-en="FIXED WEEKDAY REST" data-es="DÍA DE DESCANSO FIJO">DÍA DE DESCANSO FIJO</label>
+                        <p class="text-[9px] text-[#64748b] leading-relaxed mb-3 lang-txt" data-en="Select your fixed rest day of the week (Mon-Fri)." data-es="Selecciona tu descanso regular fijo en días laborables de lunes a viernes.">Selecciona tu descanso regular fijo de lunes a viernes.</p>
+                        
+                        <div class="flex gap-1.5" id="fixed-days-row">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <!-- License odd/even automatic rules identifier -->
+                    <div class="bg-[#1e293b]/30 border border-[#2d3a4f]/50 rounded-2xl p-4">
+                        <label class="block text-[9px] font-mono font-black text-[#cbd5e1] tracking-widest uppercase mb-1 lang-txt" data-en="LICENSE NUMBER" data-es="NÚMERO DE LICENCIA">NÚMERO DE LICENCIA</label>
+                        <p class="text-[9px] text-[#8a99ad] leading-snug mb-3 lang-txt" data-en="Calculates odd/even rotation pattern from last digit." data-es="Se extrae el dígito final automático para el descanso de fin de semana y agosto.">Se obtiene el par/impar según la última cifra de tu licencia de taxi.</p>
+                        
+                        <div class="flex items-center bg-[#111926] border border-[#2d3a4f] rounded-xl px-3 py-2 justify-between">
+                            <input type="text" id="input-license-raw" placeholder="e.g. 15433" class="bg-transparent text-white font-extrabold text-sm focus:outline-none w-28 uppercase text-center focus:ring-0" oninput="updateLicenseDigitLegacy()">
+                            <span class="font-mono text-[9px] font-black bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded border border-indigo-500/20 uppercase" id="badge-pref-pattern">IMPAR (3)</span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Calendar Preview Grid -->
+                    <div class="bg-[#1e293b]/30 border border-[#2d3a4f]/50 rounded-2xl p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="text-[10px] font-extrabold text-[#8a99ad] uppercase tracking-wider lang-txt" data-en="ROTATION PREVIEW" data-es="VISTA CALENDARIO ROTATIVO">VISTA CALENDARIO</h4>
+                            <div class="flex items-center gap-1 bg-[#111926] border border-[#2d3a4f]/50 rounded-lg p-0.5">
+                                <button onclick="prevCal()" class="p-1 text-[#cbd5e1] hover:text-white active:scale-95"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg></button>
+                                <span class="text-[9px] font-black text-white px-1.5 min-w-[56px] text-center" id="cal-preview-title">MAY 2026</span>
+                                <button onclick="nextCal()" class="p-1 text-[#cbd5e1] hover:text-white active:scale-95"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg></button>
+                            </div>
+                        </div>
+
+                        <!-- 7 weekdays header labels -->
+                        <div class="grid grid-cols-7 gap-1 text-center mb-2">
+                            <span class="text-[8px] font-bold text-[#52637a] uppercase font-mono">L</span>
+                            <span class="text-[8px] font-bold text-[#52637a] uppercase font-mono">M</span>
+                            <span class="text-[8px] font-bold text-[#52637a] uppercase font-mono">X</span>
+                            <span class="text-[8px] font-bold text-[#52637a] uppercase font-mono">J</span>
+                            <span class="text-[8px] font-bold text-[#52637a] uppercase font-mono">V</span>
+                            <span class="text-[8px] font-bold text-[#52637a] uppercase font-mono">S</span>
+                            <span class="text-[8px] font-bold text-[#52637a] uppercase font-mono">D</span>
+                        </div>
+
+                        <!-- Days matrix populated via JS -->
+                        <div class="grid grid-cols-7 gap-1 text-center font-mono" id="cal-preview-days">
+                            <!-- Dynamically loaded -->
+                        </div>
+
+                        <!-- Legend key -->
+                        <div class="grid grid-cols-2 gap-x-2 gap-y-1 mt-4 pt-3 border-t border-[#2d3a4f]/30 text-[9px] text-[#52637a]">
+                            <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500/20 border border-emerald-500/30"></span><span class="lang-txt" data-en="Taxi Turn Allowed" data-es="Día Laborable">Día Laborable</span></div>
+                            <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500/20 border border-rose-500/30"></span><span class="lang-txt" data-en="Libranza (20+ Full)" data-es="Libranza Completa">Libranza Completa</span></div>
+                            <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500/20 border border-amber-500/30"></span><span class="lang-txt" data-en="Libranza Parcial (20h)" data-es="Resto Parcial (20h+)">Resto Parcial (20h+)</span></div>
+                            <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500/25 border border-indigo-500/35"></span><span class="lang-txt" data-en="Regional Holiday" data-es="Festivo Madrid">Festivo Madrid</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-[#0b1120] border-t border-[#2d3a4f]/40 text-center shrink-0">
+                    <button onclick="closeAllModals()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-2xl text-xs font-black uppercase tracking-wider lang-txt" data-en="Done" data-es="Volver">Aceptar</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ----------------- APPLICATION LOGICAL ENGINE ----------------- -->
+    <script>
+        // 1. Initial Madrid holidays loaded for full calculations accuracy
+        const MADRID_HOLIDAYS_2026 = {
+            '2026-01-01': 'Año Nuevo',
+            '2026-01-06': 'Epifanía del Señor',
+            '2026-03-19': 'San José',
+            '2026-04-02': 'Jueves Santo',
+            '2026-04-03': 'Viernes Santo',
+            '2026-05-01': 'Fiesta del Trabajo',
+            '2026-05-02': 'Fiesta de la Comunidad de Madrid',
+            '2026-05-15': 'San Isidro Labrador',
+            '2026-08-15': 'Asunción de la Virgen',
+            '2026-10-12': 'Fiesta Nacional de España',
+            '2026-11-02': 'Traslado de Todos los Santos',
+            '2026-11-09': 'Día de la Almudena',
+            '2026-12-08': 'Inmaculada Concepción',
+            '2026-12-25': 'Natividad del Señor',
+        };
+
+        // 2. Default Platforms configurations
+        const PLATFORM_PRESETS = [
+            { id: 'taxi', name: 'Taxi', enabled: true, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+            { id: 'uber', name: 'Uber', enabled: true, color: 'text-blue-400', bg: 'bg-blue-400/10' },
+            { id: 'cabify', name: 'Cabify', enabled: true, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+            { id: 'bolt', name: 'Bolt', enabled: true, color: 'text-emerald-400', bg: 'bg-emerald-400/10' }
+        ];
+
+        // 3. Application State Values
+        let currentLang = localStorage.getItem('usman_lang') || 'ES';
+        let preferences = JSON.parse(localStorage.getItem('usman_prefs')) || {
+            licenseNumber: '7542',
+            licenseDigit: 2,
+            fixedDayOff: 'L',
+            dailyTarget: 150,
+            monthlyTarget: 3000
+        };
+        let platforms = JSON.parse(localStorage.getItem('usman_platforms')) || PLATFORM_PRESETS;
+        let earnings = JSON.parse(localStorage.getItem('usman_earnings')) || {};
+
+        // Active navigating state month for table & calendars
+        let currentYear = 2026;
+        let currentMonth = 4; // May (0-indexed)
+        let calendarYear = 2026;
+        let calendarMonth = 4;
+
+        // Selected cell focus properties
+        let activeSelectedDateStr = '2026-05-25';
+
+        // 4. Initialization
+        window.addEventListener('load', () => {
+            initInputs();
+            fetchWeather();
+            setLang(currentLang);
+            renderStaticHeaderDate();
+            refreshAll();
+        });
+
+        // Sync inputs DOM starting properties with state values representing presets
+        function initInputs() {
+            document.getElementById('input-daily-target').value = preferences.dailyTarget;
+            document.getElementById('input-monthly-target').value = preferences.monthlyTarget;
+            document.getElementById('input-license-raw').value = preferences.licenseNumber;
+        }
+
+        // Madrid current temperature from open-meteo proxy
+        async function fetchWeather() {
+            try {
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=40.4168&longitude=-3.7038&current_weather=true&daily=temperature_2m_max,temperature_2m_min&timezone=Europe/Madrid&forecast_days=1');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.current_weather) {
+                        const temp = Math.round(data.current_weather.temperature);
+                        const max = data.daily && data.daily.temperature_2m_max ? Math.round(data.daily.temperature_2m_max[0]) : null;
+                        const min = data.daily && data.daily.temperature_2m_min ? Math.round(data.daily.temperature_2m_min[0]) : null;
+                        
+                        let str = `${temp}°`;
+                        if (max !== null && min !== null) {
+                            str = `${min}/${max}°`;
+                        }
+                        
+                        document.getElementById('weather-temp').innerText = str;
+                        
+                        // Icon code based selectors
+                        const code = data.current_weather.weathercode;
+                        let emo = '🚖';
+                        if (code === 0) emo = '☀️';
+                        else if ([1,2,3].includes(code)) emo = '⛅';
+                        else if ([51,53,61,63,65,80].includes(code)) emo = '🌧️';
+                        else if ([71,73,75,85].includes(code)) emo = '❄️';
+                        else if (code >= 95) emo = '⚡';
+                        document.getElementById('weather-icon').innerText = emo;
+                    }
+                }
+            } catch (err) {
+                console.error('Weather bypass active:', err);
+                document.getElementById('weather-temp').innerText = '15/22°';
+            }
+        }
+
+        function renderStaticHeaderDate() {
+            const today = new Date();
+            const yearStr = today.getFullYear();
+            
+            const daysEN = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            const daysES = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
+            const monthsEN = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const monthsES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+            
+            const dayName = currentLang === 'ES' ? daysES[today.getDay()] : daysEN[today.getDay()];
+            const monthName = currentLang === 'ES' ? monthsES[today.getMonth()] : monthsEN[today.getMonth()];
+            const dateNum = today.getDate();
+            
+            document.getElementById('header-date').innerText = `${dayName}, ${dateNum} ${monthName}`;
+        }
+
+        // Dynamic Rest day calculator (Madrid specific rules)
+        function calculateMadridRestStatus(dateStr, prefs) {
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return 'work';
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+
+            const d = new Date(year, month, day);
+            const wDay = d.getDay(); // 0 is Sun, 6 is Sat
+
+            // Check if August Rotation rules active (Month 7)
+            if (month === 7) {
+                const isEven = prefs.licenseDigit % 2 === 0;
+                if (day >= 1 && day <= 15) {
+                    return isEven ? 'work' : 'libranza';
+                } else if (day === 16) {
+                    return 'work';
+                } else if (day >= 17 && day <= 31) {
+                    return isEven ? 'libranza' : 'work';
+                }
+            }
+
+            // Fixed Day off (Weekday Libranza Mon-Fri L,M,X,J,V)
+            const mapAbbrs = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
+            const curAbbr = mapAbbrs[wDay];
+            if (month !== 7 && prefs.fixedDayOff === curAbbr) {
+                return 'libranza';
+            }
+
+            // Weekend rotating system (Sat or Sun)
+            if (month !== 7 && (wDay === 6 || wDay === 0)) {
+                const oneJan = new Date(year, 0, 1);
+                const millisecondsDays = Math.floor((d.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000));
+                const weekNum = Math.ceil((millisecondsDays + oneJan.getDay() + 1) / 7);
+                const isEvenWeek = weekNum % 2 === 0;
+                const isEvenDigit = prefs.licenseDigit % 2 === 0;
+
+                let isWeekendRest = false;
+                if (isEvenDigit) {
+                    isWeekendRest = isEvenWeek; // Even rests on even week
+                } else {
+                    isWeekendRest = !isEvenWeek; // Odd rests on odd week
+                }
+
+                const matchesSatEven = wDay === 6 && isEvenDigit;
+                const matchesSunOdd = wDay === 0 && !isEvenDigit;
+
+                if (isWeekendRest || matchesSatEven || matchesSunOdd) {
+                    return 'refuerzo'; // Partial rest day (permitted to drive after 20:00)
+                }
+            }
+
+            return 'work';
+        }
+
+        // Reload overall dashboards from local variables containing properties
+        function refreshAll() {
+            saveToStorage();
+            calculateSummaryAndStats();
+            renderTableGrid();
+            renderPlatformsToggles();
+            renderFixedDaysPreferences();
+            renderCalendarPreview();
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('usman_lang', currentLang);
+            localStorage.setItem('usman_prefs', JSON.stringify(preferences));
+            localStorage.setItem('usman_platforms', JSON.stringify(platforms));
+            localStorage.setItem('usman_earnings', JSON.stringify(earnings));
+        }
+
+        // Complete mathematics statistics summary totals
+        function calculateSummaryAndStats() {
+            let totalGross = 0;
+            let totalExpenses = 0;
+            let workingDays = 0;
+            
+            const currentMonthPrefix = `2026-${(currentMonth+1).toString().padStart(2, '0')}`;
+            let currentDayKey = new Date().toISOString().split('T')[0];
+            let todayGross = 0;
+
+            for (let dateKey in earnings) {
+                const record = earnings[dateKey];
+                
+                // Today gross tracking
+                if (dateKey === currentDayKey) {
+                    platforms.forEach(p => {
+                        if (p.enabled && record.earnings[p.id]) {
+                            todayGross += record.earnings[p.id];
+                        }
+                    });
+                }
+
+                // Monthly calculation
+                if (dateKey.startsWith(currentMonthPrefix)) {
+                    let daySum = 0;
+                    platforms.forEach(p => {
+                        if (p.enabled && record.earnings[p.id]) {
+                            daySum += record.earnings[p.id];
+                        }
+                    });
+                    totalGross += daySum;
+                    if (record.expenses) {
+                        totalExpenses += record.expenses;
+                    }
+                    if (daySum > 0) {
+                        workingDays++;
+                    }
+                }
+            }
+
+            const netProfit = totalGross - totalExpenses;
+
+            // Render stats nodes directly
+            document.getElementById('stat-today-val').innerText = `€${todayGross.toFixed(2)}`;
+            const todayPct = preferences.dailyTarget > 0 ? Math.min(100, Math.round((todayGross / preferences.dailyTarget) * 100)) : 0;
+            document.getElementById('stat-today-pct').innerText = `${todayPct}%`;
+            document.getElementById('stat-today-bar').style.width = `${todayPct}%`;
+
+            document.getElementById('stat-monthly-val').innerText = `€${totalGross.toFixed(2)}`;
+            const monthlyPct = preferences.monthlyTarget > 0 ? Math.min(100, Math.round((totalGross / preferences.monthlyTarget) * 100)) : 0;
+            document.getElementById('stat-monthly-pct').innerText = `${monthlyPct}%`;
+            document.getElementById('stat-monthly-bar').style.width = `${monthlyPct}%`;
+
+            document.getElementById('stat-working-days').innerText = workingDays;
+            document.getElementById('stat-expenses-val').innerText = `€${totalExpenses.toFixed(2)}`;
+            document.getElementById('stat-net-val').innerText = `€${netProfit.toFixed(2)}`;
+        }
+
+        // Render tabular monthly dataset with compact vertical spacing (waqfa kam kiya)
+        function renderTableGrid() {
+            const tableHeaderRow = document.getElementById('table-header-row');
+            const tableBody = document.getElementById('earnings-table-body');
+            const emptyState = document.getElementById('empty-state');
+            
+            // 1. Rebuild headers based on currently enabled platforms list
+            const activePlatforms = platforms.filter(p => p.enabled);
+            let headersHtml = `<th class="py-2 pl-6 pr-2 text-left w-14 font-black">${currentLang === 'ES' ? 'DÍA' : 'DAY'}</th>`;
+            activePlatforms.forEach(p => {
+                headersHtml += `<th class="py-2 px-2 text-right font-black">${p.name}</th>`;
+            });
+            headersHtml += `<th class="py-2 pl-2 pr-6 text-right font-black text-emerald-400">${currentLang === 'ES' ? 'TOTAL' : 'TOTAL'}</th>`;
+            tableHeaderRow.innerHTML = headersHtml;
+
+            // 2. Clear current body
+            tableBody.innerHTML = '';
+            
+            // 3. Build monthly entries
+            const totalDaysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            let populatedDaysCount = 0;
+
+            for (let day = 1; day <= totalDaysInCurrentMonth; day++) {
+                const monthStr = (currentMonth+1).toString().padStart(2, '0');
+                const dayStr = day.toString().padStart(2, '0');
+                const dateKey = `${currentYear}-${monthStr}-${dayStr}`;
+                
+                const record = earnings[dateKey] || { earnings: {}, expenses: 0 };
+                
+                let rowSum = 0;
+                activePlatforms.forEach(p => {
+                    if (record.earnings[p.id]) {
+                        rowSum += record.earnings[p.id];
+                    }
+                });
+
+                if (rowSum > 0 || record.expenses > 0) {
+                    populatedDaysCount++;
+                }
+
+                // Row template with highly compact vertical padding (py-1.5) as requested
+                let rowHtml = `
+                    <tr class="hover:bg-[#1e293b]/20 transition-all cursor-pointer border-b border-[#2d3a4f]/20" onclick="activeSelectAndOpenEntry('${dateKey}')">
+                        <td class="py-1.5 pl-6 pr-2 text-left">
+                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-[11px] font-black border border-[#2d3a4f]/50 bg-[#162033] hover:border-amber-400 transition-all text-[#cbd5e1]">${day}</span>
+                        </td>
+                `;
+
+                activePlatforms.forEach(p => {
+                    const amt = record.earnings[p.id] || 0;
+                    rowHtml += `
+                        <td class="py-1.5 px-2 text-right font-extrabold text-[11px] sm:text-xs tracking-tight ${amt > 0 ? p.color : 'text-slate-600'}">
+                            ${amt > 0 ? `€${amt.toFixed(1)}` : '—'}
+                        </td>
+                    `;
+                });
+
+                // Row total
+                rowHtml += `
+                        <td class="py-1.5 pl-2 pr-6 text-right font-black text-xs">
+                            <div class="flex items-center justify-end gap-1">
+                                <span class="${rowSum > 0 ? 'text-emerald-400' : 'text-slate-600'}">€${rowSum.toFixed(1)}</span>
+                                ${record.expenses > 0 ? `<span class="text-[9px] text-rose-400 font-bold bg-rose-500/10 px-1 rounded">-${Math.round(record.expenses)}</span>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+
+                tableBody.insertAdjacentHTML('beforeend', rowHtml);
+            }
+
+            document.getElementById('badge-month-count').innerText = `${populatedDaysCount}D`;
+
+            if (populatedDaysCount === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+        }
+
+        // Open specific day directly
+        function activeSelectAndOpenEntry(dateKey) {
+            activeSelectedDateStr = dateKey;
+            openEntryModal();
+        }
+
+        // Render Settings platform controls checkboxes
+        function renderPlatformsToggles() {
+            const container = document.getElementById('platforms-toggle-container');
+            container.innerHTML = '';
+            
+            platforms.forEach((p, idx) => {
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="flex justify-between items-center bg-[#111926] p-3 rounded-xl border border-[#2d3a4f]/70">
+                        <span class="text-xs font-extrabold text-[#cbd5e1] flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full ${p.bg} border ${p.color.replace('text-', 'border-')}"></span>
+                            ${p.name}
+                        </span>
+                        <input type="checkbox" ${p.enabled ? 'checked' : ''} onchange="togglePlatformValue(${idx})" class="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    </div>
+                `);
+            });
+        }
+
+        function togglePlatformValue(index) {
+            platforms[index].enabled = !platforms[index].enabled;
+            // Ensure at least one platform remains enabled
+            const enabledCount = platforms.filter(p => p.enabled).length;
+            if (enabledCount === 0) {
+                alert("Debe mantener al menos una plataforma activa.");
+                platforms[index].enabled = true;
+            }
+            refreshAll();
+        }
+
+        // Fixed Mon-Fri descanso preferences loader
+        function renderFixedDaysPreferences() {
+            const container = document.getElementById('fixed-days-row');
+            container.innerHTML = '';
+            const days = ['L', 'M', 'X', 'J', 'V'];
+            
+            days.forEach(d => {
+                const isSelected = preferences.fixedDayOff === d;
+                container.insertAdjacentHTML('beforeend', `
+                    <button onclick="toggleFixedDayOff('${d}')" class="flex-1 aspect-square flex items-center justify-center font-black rounded-xl border text-xs transition-all ${
+                        isSelected 
+                            ? 'bg-rose-500 text-white border-rose-400 shadow-lg shadow-rose-500/20 scale-105' 
+                            : 'bg-[#111926] border-[#2d3a4f] text-[#cbd5e1]'
+                    }">${d}</button>
+                `);
+            });
+
+            // Sync license digit helper logic
+            document.getElementById('badge-pref-pattern').innerText = `${preferences.licenseDigit % 2 === 0 ? (currentLang === 'ES' ? 'PAR' : 'EVEN') : (currentLang === 'ES' ? 'IMPAR' : 'ODD')} (${preferences.licenseDigit})`;
+        }
+
+        function toggleFixedDayOff(day) {
+            preferences.fixedDayOff = preferences.fixedDayOff === day ? null : day;
+            refreshAll();
+        }
+
+        function updateLicenseDigitLegacy() {
+            const raw = document.getElementById('input-license-raw').value;
+            const numsOnly = raw.replace(/\D/g, '');
+            let finalDigit = preferences.licenseDigit;
+            
+            if (numsOnly.length > 0) {
+                finalDigit = parseInt(numsOnly.slice(-1), 10);
+            }
+            
+            preferences.licenseNumber = raw;
+            preferences.licenseDigit = finalDigit;
+            
+            renderFixedDaysPreferences();
+            renderCalendarPreview();
+        }
+
+        // Madrid rotating Calendar layout module
+        function renderCalendarPreview() {
+            const titleNode = document.getElementById('cal-preview-title');
+            const daysContainer = document.getElementById('cal-preview-days');
+            
+            const monthNamesES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const monthNamesEN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            titleNode.innerText = `${currentLang === 'ES' ? monthNamesES[calendarMonth] : monthNamesEN[calendarMonth]} ${calendarYear}`;
+
+            daysContainer.innerHTML = '';
+
+            const firstDayIndex = new Date(calendarYear, calendarMonth, 1).getDay();
+            const adjustedOffset = firstDayIndex === 0 ? 6 : firstDayIndex - 1; // Spanish layout padding
+            const totalDays = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+
+            // Offset empty slots
+            for (let i = 0; i < adjustedOffset; i++) {
+                daysContainer.insertAdjacentHTML('beforeend', '<div class="aspect-square opacity-0"></div>');
+            }
+
+            // Populating visual day matrices
+            for (let day = 1; day <= totalDays; day++) {
+                const keyMonth = (calendarMonth + 1).toString().padStart(2, '0');
+                const keyDay = day.toString().padStart(2, '0');
+                const dateKey = `${calendarYear}-${keyMonth}-${keyDay}`;
+                
+                const status = calculateMadridRestStatus(dateKey, preferences);
+                const isHoliday = MADRID_HOLIDAYS_2026[dateKey];
+
+                let nodeStyleClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+                let addonBadge = '';
+
+                if (isHoliday) {
+                    nodeStyleClass = 'bg-indigo-500/25 text-indigo-300 border-indigo-500/30';
+                } else if (status === 'libranza') {
+                    nodeStyleClass = 'bg-rose-500/20 text-rose-300 border-rose-500/30';
+                    addonBadge = '<span class="text-[6px] opacity-70 block -mt-1 font-sans">20+</span>';
+                } else if (status === 'refuerzo') {
+                    nodeStyleClass = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+                }
+
+                daysContainer.insertAdjacentHTML('beforeend', `
+                    <div class="aspect-square rounded-lg flex flex-col justify-center items-center font-bold border text-[11px] ${nodeStyleClass}">
+                        <span>${day}</span>
+                        ${addonBadge}
+                    </div>
+                `);
+            }
+        }
+
+        // Stepper month controls
+        function prevMonth() {
+            if (currentMonth === 0) {
+                currentMonth = 11;
+                currentYear--;
+            } else {
+                currentMonth--;
+            }
+            // Update calendar preview concurrently
+            calendarYear = currentYear;
+            calendarMonth = currentMonth;
+            
+            document.getElementById('month-title').innerText = `${getMonthAbbrString(currentMonth)} ${currentYear}`;
+            refreshAll();
+        }
+
+        function nextMonth() {
+            if (currentMonth === 11) {
+                currentMonth = 0;
+                currentYear++;
+            } else {
+                currentMonth++;
+            }
+            calendarYear = currentYear;
+            calendarMonth = currentMonth;
+
+            document.getElementById('month-title').innerText = `${getMonthAbbrString(currentMonth)} ${currentYear}`;
+            refreshAll();
+        }
+
+        function prevCal() {
+            if (calendarMonth === 0) {
+                calendarMonth = 11;
+                calendarYear--;
+            } else {
+                calendarMonth--;
+            }
+            renderCalendarPreview();
+        }
+
+        function nextCal() {
+            if (calendarMonth === 11) {
+                calendarMonth = 0;
+                calendarYear++;
+            } else {
+                calendarMonth++;
+            }
+            renderCalendarPreview();
+        }
+
+        function getMonthAbbrString(m) {
+            const monthNamesES = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+            const monthNamesEN = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            return currentLang === 'ES' ? monthNamesES[m] : monthNamesEN[m];
+        }
+
+        // 5. Actions / Local Storage Controls
+        function saveTargets() {
+            const daily = parseFloat(document.getElementById('input-daily-target').value) || 0;
+            const monthly = parseFloat(document.getElementById('input-monthly-target').value) || 0;
+            
+            preferences.dailyTarget = daily;
+            preferences.monthlyTarget = monthly;
+            
+            closeAllModals();
+            refreshAll();
+        }
+
+        function openEntryModal() {
+            closeAllModals();
+            
+            // Set dynamic date value with active selecion preset
+            document.getElementById('input-entry-date').value = activeSelectedDateStr;
+
+            const record = earnings[activeSelectedDateStr] || { earnings: {}, expenses: 0, notes: '' };
+
+            // Render interactive input elements inside modal B dynamically corresponding active list
+            const inputsContainer = document.getElementById('entry-platforms-inputs');
+            inputsContainer.innerHTML = '';
+            
+            const activePlatforms = platforms.filter(p => p.enabled);
+            activePlatforms.forEach(p => {
+                const savedValue = record.earnings[p.id] || '';
+                inputsContainer.insertAdjacentHTML('beforeend', `
+                    <div>
+                        <label class="block text-[10px] font-mono font-black ${p.color} uppercase tracking-widest mb-1">${p.name.toUpperCase()} (€)</label>
+                        <input type="number" step="0.5" id="entry-platform-${p.id}" value="${savedValue}" placeholder="e.g. 50" class="w-full bg-[#111926] border border-[#2d3a4f] rounded-2xl px-4 py-2.5 text-white font-extrabold text-sm focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400">
+                    </div>
+                `);
+            });
+
+            document.getElementById('input-entry-expenses').value = record.expenses || '';
+            document.getElementById('input-entry-notes').value = record.notes || '';
+
+            // Update title text
+            const isEs = currentLang === 'ES';
+            const dateParts = activeSelectedDateStr.split('-');
+            const dayLabelText = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : '';
+            document.getElementById('entry-modal-title').innerText = isEs ? `Editar Día: ${dayLabelText}` : `Edit Day: ${dayLabelText}`;
+
+            document.getElementById('modal-entry').classList.remove('hidden');
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+
+        function saveEntry() {
+            const dateKey = document.getElementById('input-entry-date').value;
+            if (!dateKey) {
+                alert("Por favor seleccione un día válido.");
+                return;
+            }
+
+            // Reconstruct earning
+            if (!earnings[dateKey]) {
+                earnings[dateKey] = { earnings: {}, expenses: 0, notes: '' };
+            }
+
+            platforms.forEach(p => {
+                const el = document.getElementById(`entry-platform-${p.id}`);
+                if (el) {
+                    const parsed = parseFloat(el.value);
+                    if (!isNaN(parsed) && parsed >= 0) {
+                        earnings[dateKey].earnings[p.id] = parsed;
+                    } else {
+                        delete earnings[dateKey].earnings[p.id];
+                    }
+                }
+            });
+
+            const expensesVal = parseFloat(document.getElementById('input-entry-expenses').value);
+            earnings[dateKey].expenses = !isNaN(expensesVal) && expensesVal >= 0 ? expensesVal : 0;
+            
+            const notesValue = document.getElementById('input-entry-notes').value.trim();
+            earnings[dateKey].notes = notesValue || undefined;
+
+            closeAllModals();
+            refreshAll();
+        }
+
+        function resetData() {
+            const isEs = currentLang === 'ES';
+            const confirmation = isEs 
+                ? "¿De verdad desea reiniciar todas sus transacciones, descansos y estadísticas de US-MAN?" 
+                : "Are you sure you want to reset all data and earnings logs?";
+            
+            if (confirm(confirmation)) {
+                earnings = {};
+                preferences = {
+                    licenseNumber: '7542',
+                    licenseDigit: 2,
+                    fixedDayOff: 'L',
+                    dailyTarget: 150,
+                    monthlyTarget: 3000
+                };
+                platforms = PLATFORM_PRESETS;
+                
+                // Reset inputs UI
+                initInputs();
+                closeAllModals();
+                refreshAll();
+            }
+        }
+
+        // 6. Language selectors
+        function setLang(lang) {
+            currentLang = lang;
+            
+            const btnEn = document.getElementById('btn-lang-en');
+            const btnEs = document.getElementById('btn-lang-es');
+            
+            if (lang === 'EN') {
+                btnEn.className = "flex-1 text-center py-1 text-[11px] font-black rounded-lg transition-all bg-indigo-600 text-white shadow-md";
+                btnEs.className = "flex-1 text-center py-1 text-[11px] font-black rounded-lg transition-all text-[#8a99ad] hover:text-white";
+                document.getElementById('header-title').innerText = "US-MAN";
+                document.getElementById('menu-lang-title').innerText = "Language";
+            } else {
+                btnEs.className = "flex-1 text-center py-1 text-[11px] font-black rounded-lg transition-all bg-indigo-600 text-white shadow-md";
+                btnEn.className = "flex-1 text-center py-1 text-[11px] font-black rounded-lg transition-all text-[#8a99ad] hover:text-white";
+                document.getElementById('header-title').innerText = "US-MAN";
+                document.getElementById('menu-lang-title').innerText = "Idioma";
+            }
+
+            // Translate static inline items matching current selector language
+            const elementsToTrans = document.querySelectorAll('.lang-txt');
+            elementsToTrans.forEach(el => {
+                const txt = lang === 'EN' ? el.getAttribute('data-en') : el.getAttribute('data-es');
+                if (txt) el.innerText = txt;
+            });
+
+            renderStaticHeaderDate();
+            refreshAll();
+        }
+
+        // Modal triggers helpers
+        function toggleMenu() {
+            const menu = document.getElementById('options-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function openTargetModal() {
+            closeAllModals();
+            document.getElementById('modal-targets').classList.remove('hidden');
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+
+        function openPlatformModal() {
+            closeAllModals();
+            document.getElementById('modal-platforms').classList.remove('hidden');
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+
+        function openCalendarModal() {
+            closeAllModals();
+            document.getElementById('modal-calendar').classList.remove('hidden');
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+
+        function closeAllModals() {
+            document.getElementById('modal-backdrop').classList.add('hidden');
+            document.getElementById('modal-targets').classList.add('hidden');
+            document.getElementById('modal-platforms').classList.add('hidden');
+            document.getElementById('modal-entry').classList.add('hidden');
+            document.getElementById('modal-calendar').classList.add('hidden');
+            
+            // Hide menu too
+            document.getElementById('options-menu').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
